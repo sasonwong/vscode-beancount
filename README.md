@@ -33,6 +33,9 @@ VSCode extension for the text-based double-entry accounting tool
 8. (Experimental) Use Pinyin initial letters to input existing Chinese
    narrations and payees quickly. 使用拼音首字母快速输入现有的中文受款人和描述
    。[See details](https://github.com/Lencerf/vscode-beancount/blob/master/InputMethods.md).
+9. (Experimental) LLM-powered inline completion (ghost text) using
+   OpenAI-compatible chat APIs (DeepSeek, OpenAI, Ollama, etc.). See
+   [LLM configuration](#llm-features) below.
 
 ## Extension Settings
 
@@ -58,8 +61,18 @@ This extension contributes the following settings:
 - `beancount.fixedCJKWidth`: Set to true to treat CJK aka East Asian characters
   as two letters width on alignment.
 - `beancount.inputMethods`: List the input methods for auto-completion of payees
-  and narrations with CJK characters. Currently only `pinyin` is supported.
-  [See details](https://github.com/Lencerf/vscode-beancount/blob/master/InputMethods.md).
+   and narrations with CJK characters. Currently only `pinyin` is supported.
+   [See details](https://github.com/Lencerf/vscode-beancount/blob/master/InputMethods.md).
+
+### LLM Features
+
+- `beancount.llm.enabled`: Enable LLM-powered inline completion (ghost text).
+- `beancount.llm.apiKey`: API key for the OpenAI-compatible LLM provider.
+- `beancount.llm.baseUrl`: Base URL for the API (default: `https://api.deepseek.com/v1`).
+- `beancount.llm.model`: Model name (default: `deepseek-v4-flash`).
+- `beancount.llm.maxTokens`: Max tokens per completion (default: 150).
+- `beancount.llm.debounceMs`: Debounce delay in ms (default: 300).
+- `beancount.llm.maxContextLines`: Lines before cursor to include as context (default: 40).
 
 ## Recommended practices
 
@@ -102,6 +115,12 @@ able to invoke beancount to check errors and calculate balances.
 see GitHub [issue page](https://github.com/Lencerf/vscode-beancount/issues)
 
 ## Release Notes
+
+### 0.15.0 (2026-05-29)
+
+- LLM-powered inline completion with OpenAI-compatible chat API support
+- Configurable provider, model, and context window
+- Ghost text (Tab to accept) with debounce and smart skip logic
 
 ### 0.14.0 (2025-10-05)
 

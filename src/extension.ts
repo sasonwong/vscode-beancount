@@ -9,6 +9,7 @@ import { runCmd } from "./utils";
 import { SymbolProvider } from "./symbolProvider";
 import DocumentLinkProvider from "./documentLinkProvider";
 import { HintsUpdater } from "./inlayHints";
+import { LlmCompletionProvider } from "./llm/completionProvider";
 
 export function activate(context: vscode.ExtensionContext) {
   const extension = new Extension(context);
@@ -34,6 +35,14 @@ export function activate(context: vscode.ExtensionContext) {
       "#",
       "^",
       '"'
+    )
+  );
+  // LLM inline completion
+  const llmCompletionProvider = new LlmCompletionProvider(extension);
+  context.subscriptions.push(
+    vscode.languages.registerInlineCompletionItemProvider(
+      beancountDocumentSelector,
+      llmCompletionProvider
     )
   );
   context.subscriptions.push(
@@ -84,6 +93,68 @@ export function activate(context: vscode.ExtensionContext) {
     extension.favaManager.openFava(false);
   }
 
+  // LLM API key commands (stored in OS keychain, never in settings.json)
+  context.subscriptions.push(
+    vscode.commands.registerCommand("beancount.setLlmApiKey", async () => {
+      const key = await vscode.window.showInputBox({
+        password: true,
+        prompt: "Enter your LLM API key",
+        placeHolder: "sk-...",
+        ignoreFocusOut: true,
+      });
+      if (key === undefined) return;
+      if (key.trim() === "") {
+        vscode.window.showWarningMessage("API key cannot be empty.");
+        return;
+      }
+      await context.secrets.store("beancount.llm.apiKey", key.trim());
+      vscode.window.showInformationMessage(
+        "LLM API key saved (stored in OS keychain)."
+      );
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("beancount.clearLlmApiKey", async () => {
+      const existing = await context.secrets.get("beancount.llm.apiKey");
+      if (!existing) {
+        vscode.window.showInformationMessage("No LLM API key is currently stored.");
+        return;
+      }
+      await context.secrets.delete("beancount.llm.apiKey");
+      vscode.window.showInformationMessage(
+        "LLM API key cleared from keychain."
+      );
+    })
+  );
+
+  // Show a hint when LLM is enabled but no API key is configured
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(async (e) => {
+      if (e.affectsConfiguration("beancount.llm.enabled")) {
+        const enabled = vscode.workspace
+          .getConfiguration("beancount")
+          .get<boolean>("llm.enabled", false);
+        if (enabled) {
+          const key = await context.secrets.get("beancount.llm.apiKey");
+          if (!key) {
+            setTimeout(() => {
+              vscode.window
+                .showInformationMessage(
+                  "Beancount LLM: Set your API key via the command \"Beancount: Set LLM API Key\" (Ctrl+Shift+P).",
+                  "Set API Key"
+                )
+                .then((action) => {
+                  if (action === "Set API Key") {
+                    vscode.commands.executeCommand("beancount.setLlmApiKey");
+                  }
+                });
+            }, 500);
+          }
+        }
+      }
+    })
+  );
+
   context.subscriptions.push(
     vscode.languages.registerDocumentSymbolProvider(
       beancountDocumentSelector,
@@ -94,6 +165,15 @@ export function activate(context: vscode.ExtensionContext) {
       beancountDocumentSelector,
       extension.documentLinkProvider
     ));
+
+  // Refresh LLM provider's config cache when non-secret LLM settings change
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("beancount.llm")) {
+        llmCompletionProvider.reloadConfig();
+      }
+    })
+  );
 }
 
 export function deactivate() { }
@@ -131,6 +211,11 @@ export class Extension {
     return path.replace(/%([^%]+)%/g, (_, key) => {
       return process.env[key] ?? "";
     });
+  }
+
+  /** Get LLM API key from OS keychain (set via "Beancount: Set LLM API Key" command). */
+  async getLlmApiKey(): Promise<string> {
+    return (await this.context.secrets.get("beancount.llm.apiKey")) ?? "";
   }
 
   getMainBeanFile(): string {
