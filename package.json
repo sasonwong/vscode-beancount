@@ -1,9 +1,9 @@
 {
   "name": "beancount",
-  "displayName": "Beancount",
+  "displayName": "Beancount (Dev)",
   "description": "VSCode extension for Beancount",
-  "version": "0.14.0",
-  "publisher": "Lencerf",
+  "version": "0.15.0",
+  "publisher": "sasonwong",
   "engines": {
     "vscode": "^1.84.0"
   },
