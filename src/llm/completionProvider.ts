@@ -121,6 +121,16 @@ export class LlmCompletionProvider implements InlineCompletionItemProvider {
             completion = "\n" + completion;
           }
 
+          // Truncate at first entry boundary to avoid multi-entry ghost text
+          const boundaryMatch = completion.search(/\n{2,}(?=\d{4}-\d{2}-\d{2})/);
+          if (boundaryMatch > 0) {
+            this.logger.appendLine(
+              `[LLM] Truncated at entry boundary (${completion.length} → ${boundaryMatch + 1} chars)`
+            );
+            // Keep one trailing \n to end the last line properly
+            completion = completion.substring(0, boundaryMatch + 1);
+          }
+
           if (completion.length === 0) {
             resolve([]);
             return;
@@ -171,20 +181,17 @@ export class LlmCompletionProvider implements InlineCompletionItemProvider {
       return true;
     }
 
-    // Empty line or whitespace-only (auto-indented by Enter)
+    // Empty line or whitespace-only
     if (lineText.trim() === "") {
       if (position.line === 0) {
         return true;
       }
       const prevLine = document.lineAt(position.line - 1).text;
+      // Two consecutive blank lines → entry separator → skip
       if (prevLine.trim() === "") {
         return true;
       }
-      // If line has only whitespace (auto-indent after posting), skip.
-      // User must either type (to continue entry) or press Enter again (to end entry).
-      if (lineText.length > 0 && prevLine.startsWith(" ")) {
-        return true;
-      }
+      // Otherwise (auto-indented line within or after an entry), let LLM try
       return false;
     }
 
@@ -193,15 +200,20 @@ export class LlmCompletionProvider implements InlineCompletionItemProvider {
       return true;
     }
 
-    // Inside quotes — let traditional completer handle
+    // Inside first pair of quotes (payee) — let traditional completer handle
     const textBefore = lineText.substring(0, position.character);
     const quoteCount = (textBefore.match(/"/g) || []).length;
-    if (quoteCount % 2 === 1) {
+    if (quoteCount === 1) {
       return true;
     }
 
-    // End of entry: skip if current posting is the last in its entry
-    if (this.isEndOfEntry(document, position.line)) {
+    // # (tags) and ^ (links) — let traditional completer handle
+    if (textBefore.endsWith("#") || textBefore.endsWith("^")) {
+      return true;
+    }
+
+    // End of entry: skip if current posting is the last in its entry AND is complete
+    if (this.isEndOfEntry(document, position.line) && this.isPostingComplete(lineText)) {
       return true;
     }
 
@@ -227,6 +239,14 @@ export class LlmCompletionProvider implements InlineCompletionItemProvider {
 
     // EOF after this posting → end of entry
     return true;
+  }
+
+  /** Check whether a posting line already has account + amount + currency. */
+  private isPostingComplete(lineText: string): boolean {
+    const trimmed = lineText.trim();
+    const parts = trimmed.split(/\s+/);
+    // Complete posting has at least: account, amount, currency (3 tokens)
+    return parts.length >= 3;
   }
 
   private loadConfig(): LlmConfig {
