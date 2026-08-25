@@ -28,12 +28,13 @@ export class FavaManager implements vscode.Disposable {
       this.extension.logger.appendLine("created Fava terminal");
     }
     const favaPath = vscode.workspace.getConfiguration("beancount")["favaPath"];
+    const favaHost = vscode.workspace.getConfiguration("beancount")["favaHost"];
     this._terminal.sendText(
-      favaPath + ' -H 127.0.0.1 "'.concat(beanFile, '"'),
+      favaPath + ' -H ' + favaHost + ' "'.concat(beanFile, '"'),
       true
     );
     this.extension.logger.appendLine(
-      `executed [${favaPath} -H 127.0.0.1 "${beanFile}"]`
+      `executed [${favaPath} -H ${favaHost} "${beanFile}"]`
     );
     if (showPrompt) {
       this._terminal.show();
@@ -46,7 +47,7 @@ export class FavaManager implements vscode.Disposable {
         if (value === "Yes") {
           vscode.commands.executeCommand(
             "vscode.open",
-            vscode.Uri.parse("http://127.0.0.1:5000/")
+            vscode.Uri.parse(`http://${favaHost}:5000/`)
           );
         }
       });

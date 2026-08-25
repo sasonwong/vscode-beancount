@@ -55,6 +55,11 @@
           "default": "fava",
           "description": "Specify the path of Fava if Fava is not installed in the main Python installation."
         },
+        "beancount.favaHost": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Specify the host address Fava listens on. Use 0.0.0.0 to allow remote access."
+        },
         "beancount.python3Path": {
           "type": "string",
           "default": "python3",
