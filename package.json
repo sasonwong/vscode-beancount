@@ -100,7 +100,6 @@
           "default": false,
           "description": "Enable LLM-powered inline completion (ghost text). Use \"Beancount: Set LLM API Key\" command to configure your API key (stored in OS keychain)."
         },
-
         "beancount.llm.baseUrl": {
           "type": "string",
           "default": "https://api.deepseek.com/v1",
@@ -214,10 +213,10 @@
   },
   "devDependencies": {
     "@types/mocha": "^10.0.3",
-    "@types/node": "18.x",
+    "@types/node": "^20.19.43",
     "@types/vscode": "^1.84.0",
-    "@typescript-eslint/eslint-plugin": "^6.9.0",
-    "@typescript-eslint/parser": "^6.9.0",
+    "@typescript-eslint/eslint-plugin": "^8.68.0",
+    "@typescript-eslint/parser": "^8.68.0",
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^8.52.0",
     "glob": "^11.1.0",
@@ -226,5 +225,8 @@
     "typescript": "^5.9.3",
     "webpack": "^5.105.0",
     "webpack-cli": "^5.1.4"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.5"
   }
 }
